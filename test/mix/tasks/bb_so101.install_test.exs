@@ -168,6 +168,74 @@ defmodule Mix.Tasks.BbSo101.InstallTest do
       refute mix_exs =~ ":bb_servo_feetech"
       refute mix_exs =~ ":feetech,"
     end
+
+    test "adds arm_commands as a sparse git dep" do
+      igniter =
+        test_project()
+        |> Igniter.compose_task("bb_so101.install")
+        |> apply_igniter!()
+
+      mix_exs =
+        igniter.rewrite
+        |> Rewrite.source!("mix.exs")
+        |> Rewrite.Source.get(:content)
+
+      assert mix_exs =~ ":arm_commands"
+      assert mix_exs =~ ~s|git: "https://github.com/beam-bots/bb_examples.git"|
+      assert mix_exs =~ ~s|sparse: "arm_commands"|
+    end
+  end
+
+  describe "arm_commands" do
+    test "registers the home command with a :position argument" do
+      igniter =
+        test_project()
+        |> Igniter.compose_task("bb_so101.install")
+        |> apply_igniter!()
+
+      robot =
+        igniter.rewrite
+        |> Rewrite.source!("lib/test/robot.ex")
+        |> Rewrite.Source.get(:content)
+
+      assert robot =~ "command :home"
+      assert robot =~ "BB.Examples.ArmCommands.Home"
+      assert robot =~ "argument(:position"
+    end
+
+    test "registers the move_to_pose command with an :ee_link argument" do
+      igniter =
+        test_project()
+        |> Igniter.compose_task("bb_so101.install")
+        |> apply_igniter!()
+
+      robot =
+        igniter.rewrite
+        |> Rewrite.source!("lib/test/robot.ex")
+        |> Rewrite.Source.get(:content)
+
+      assert robot =~ "command :move_to_pose"
+      assert robot =~ "BB.Examples.ArmCommands.MoveToPose"
+      assert robot =~ "argument(:ee_link"
+    end
+
+    test "registers the demo_circle command with its plane / radius / points arguments" do
+      igniter =
+        test_project()
+        |> Igniter.compose_task("bb_so101.install")
+        |> apply_igniter!()
+
+      robot =
+        igniter.rewrite
+        |> Rewrite.source!("lib/test/robot.ex")
+        |> Rewrite.Source.get(:content)
+
+      assert robot =~ "command :demo_circle"
+      assert robot =~ "BB.Examples.ArmCommands.DemoCircle"
+      assert robot =~ "argument(:plane, {:in, [:xy, :xz, :yz]}"
+      assert robot =~ "argument(:radius, :float"
+      assert robot =~ "argument(:points, :integer"
+    end
   end
 
   describe "formatter" do

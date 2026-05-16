@@ -38,7 +38,10 @@ if Code.ensure_loaded?(Igniter) do
     use Igniter.Mix.Task
 
     alias Igniter.Code.{Common, Function}
-    alias Igniter.Project.{Formatter, Module}
+    alias Igniter.Project.{Deps, Formatter, Module}
+
+    @arm_commands_dep {:arm_commands,
+                       git: "https://github.com/beam-bots/bb_examples.git", sparse: "arm_commands"}
 
     @impl Igniter.Mix.Task
     def info(_argv, _parent) do
@@ -72,6 +75,108 @@ if Code.ensure_loaded?(Igniter) do
         "feetech_controller"
       ])
       |> lift_robot_opts_to_function(robot_module, device)
+      |> add_arm_commands(robot_module)
+    end
+
+    # Adds the `arm_commands` example package (sparse git dep against
+    # bb_examples) and registers its three handlers — Home, MoveToPose,
+    # DemoCircle — as commands on the user's robot, with DSL argument
+    # metadata so the bb_liveview dashboard renders proper input widgets
+    # for each goal field.
+    defp add_arm_commands(igniter, robot_module) do
+      igniter
+      |> Deps.add_dep(@arm_commands_dep)
+      |> add_command(robot_module, :home, home_command_body())
+      |> add_command(robot_module, :move_to_pose, move_to_pose_command_body())
+      |> add_command(robot_module, :demo_circle, demo_circle_command_body())
+    end
+
+    # Adds a `command :name do … end` entry to the robot's `commands`
+    # section. Idempotent on command name. Reuses the public
+    # `Spark.Igniter.update_dsl` mechanism that BB.Igniter's own helpers
+    # use; no equivalent helper exists on BB.Igniter (yet — it could be
+    # promoted there in a follow-up).
+    defp add_command(igniter, robot_module, name, body_code) do
+      Spark.Igniter.update_dsl(igniter, robot_module, [{:section, :commands}], nil, fn zipper ->
+        if command_exists?(zipper, name) do
+          {:ok, zipper}
+        else
+          code = "command :#{name} do\n#{indent(body_code)}\nend\n"
+          {:ok, Common.add_code(zipper, code)}
+        end
+      end)
+    end
+
+    defp command_exists?(zipper, name) do
+      case Function.move_to_function_call_in_current_scope(
+             zipper,
+             :command,
+             [2, 3],
+             &Function.argument_equals?(&1, 0, name)
+           ) do
+        {:ok, _} -> true
+        _ -> false
+      end
+    end
+
+    defp indent(text) do
+      text
+      |> String.split("\n")
+      |> Enum.map_join("\n", fn
+        "" -> ""
+        line -> "  " <> line
+      end)
+    end
+
+    defp home_command_body do
+      """
+      handler(BB.Examples.ArmCommands.Home)
+      allowed_states([:idle])
+
+      argument(:position, :float, default: 0.0, doc: "Position (radians) for every movable joint")
+      """
+    end
+
+    defp move_to_pose_command_body do
+      """
+      handler(BB.Examples.ArmCommands.MoveToPose)
+      allowed_states([:idle])
+
+      argument(:ee_link, :atom,
+        default: :ee_link,
+        doc: "End-effector link name in the topology"
+      )
+      """
+    end
+
+    defp demo_circle_command_body do
+      """
+      handler(BB.Examples.ArmCommands.DemoCircle)
+      allowed_states([:idle])
+
+      argument(:ee_link, :atom,
+        default: :ee_link,
+        doc: "End-effector link name in the topology"
+      )
+
+      argument(:plane, {:in, [:xy, :xz, :yz]},
+        default: :xz,
+        doc: "Plane the circle is traced in"
+      )
+
+      argument(:radius, :float, default: 0.03, doc: "Circle radius (metres)")
+      argument(:points, :integer, default: 16, doc: "Number of waypoints around the circle")
+
+      argument(:settle_tolerance_m, :float,
+        default: 5.0e-3,
+        doc: "EE distance from target to consider arrived (metres)"
+      )
+
+      argument(:settle_timeout_ms, :integer,
+        default: 1500,
+        doc: "Max wait per waypoint before continuing (milliseconds)"
+      )
+      """
     end
 
     # Replaces the inline robot child-spec opts in `application.ex` with a call
