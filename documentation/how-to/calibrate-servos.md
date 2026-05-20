@@ -89,19 +89,27 @@ manually.
 ### The gripper feels backwards
 
 The gripper actuator uses the joint's positive direction, which on a standard
-SO-101 means "open". If your gripper closes when commanded to open, set
-`reverse?: true` on the gripper actuator in the generated `robot.ex`:
+SO-101 means "open". If your gripper closes when commanded to open, add a
+`reversed? true` line to the gripper joint's `transmission` block in the
+generated `robot.ex`:
 
 ```elixir
-actuator(
-  :gripper_servo,
-  {BB.Servo.Feetech.Actuator,
-   servo_id: 6, controller: :feetech_controller, reverse?: true}
-)
+joint :gripper do
+  # ...
+  transmission do
+    offset(~u(45.0 degree))
+    reversed?(true)
+  end
+
+  actuator(
+    :gripper_servo,
+    {BB.Servo.Feetech.Actuator, servo_id: 6, controller: :feetech_controller}
+  )
+end
 ```
 
-The other five joints have `reverse?: true` baked in already; the gripper
-historically doesn't need it but kits vary.
+The other five joints have `reversed? true` baked into their transmission
+already; the gripper historically doesn't need it but kits vary.
 
 ## When you _don't_ need to recalibrate
 
