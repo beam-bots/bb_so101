@@ -274,14 +274,12 @@ if Code.ensure_loaded?(Igniter) do
           acceleration(~u(2160 degree_per_square_second))
         end
 
-        transmission do
-          reversed?(true)
+        actuator :shoulder_pan_servo,
+                 {BB.Servo.Feetech.Actuator, servo_id: 1, controller: :feetech_controller} do
+          transmission do
+            reversed?(true)
+          end
         end
-
-        actuator(
-          :shoulder_pan_servo,
-          {BB.Servo.Feetech.Actuator, servo_id: 1, controller: :feetech_controller}
-        )
 
         link :shoulder_link do
           visual do
@@ -326,15 +324,13 @@ if Code.ensure_loaded?(Igniter) do
               acceleration(~u(2160 degree_per_square_second))
             end
 
-            transmission do
-              offset(~u(90.0 degree))
-              reversed?(true)
+            actuator :shoulder_lift_servo,
+                     {BB.Servo.Feetech.Actuator, servo_id: 2, controller: :feetech_controller} do
+              transmission do
+                offset(~u(90.0 degree))
+                reversed?(true)
+              end
             end
-
-            actuator(
-              :shoulder_lift_servo,
-              {BB.Servo.Feetech.Actuator, servo_id: 2, controller: :feetech_controller}
-            )
 
             link :upper_arm_link do
               visual do
@@ -379,15 +375,14 @@ if Code.ensure_loaded?(Igniter) do
                   acceleration(~u(2160 degree_per_square_second))
                 end
 
-                transmission do
-                  offset(~u(-90.0 degree))
-                  reversed?(true)
+                actuator :elbow_servo,
+                         {BB.Servo.Feetech.Actuator,
+                          servo_id: 3, controller: :feetech_controller} do
+                  transmission do
+                    offset(~u(-90.0 degree))
+                    reversed?(true)
+                  end
                 end
-
-                actuator(
-                  :elbow_servo,
-                  {BB.Servo.Feetech.Actuator, servo_id: 3, controller: :feetech_controller}
-                )
 
                 link :forearm_link do
                   visual do
@@ -432,14 +427,13 @@ if Code.ensure_loaded?(Igniter) do
                       acceleration(~u(2160 degree_per_square_second))
                     end
 
-                    transmission do
-                      reversed?(true)
+                    actuator :wrist_flex_servo,
+                             {BB.Servo.Feetech.Actuator,
+                              servo_id: 4, controller: :feetech_controller} do
+                      transmission do
+                        reversed?(true)
+                      end
                     end
-
-                    actuator(
-                      :wrist_flex_servo,
-                      {BB.Servo.Feetech.Actuator, servo_id: 4, controller: :feetech_controller}
-                    )
 
                     link :wrist_link do
                       visual do
@@ -484,14 +478,13 @@ if Code.ensure_loaded?(Igniter) do
                           acceleration(~u(2160 degree_per_square_second))
                         end
 
-                        transmission do
-                          reversed?(true)
+                        actuator :wrist_roll_servo,
+                                 {BB.Servo.Feetech.Actuator,
+                                  servo_id: 5, controller: :feetech_controller} do
+                          transmission do
+                            reversed?(true)
+                          end
                         end
-
-                        actuator(
-                          :wrist_roll_servo,
-                          {BB.Servo.Feetech.Actuator, servo_id: 5, controller: :feetech_controller}
-                        )
 
                         link :gripper_link do
                           visual do
@@ -536,15 +529,13 @@ if Code.ensure_loaded?(Igniter) do
                               acceleration(~u(2160 degree_per_square_second))
                             end
 
-                            transmission do
-                              offset(~u(45.0 degree))
+                            actuator :gripper_servo,
+                                     {BB.Servo.Feetech.Actuator,
+                                      servo_id: 6, controller: :feetech_controller} do
+                              transmission do
+                                offset(~u(45.0 degree))
+                              end
                             end
-
-                            actuator(
-                              :gripper_servo,
-                              {BB.Servo.Feetech.Actuator,
-                               servo_id: 6, controller: :feetech_controller}
-                            )
 
                             link :jaw_link do
                               visual do
