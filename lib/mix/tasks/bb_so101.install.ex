@@ -74,7 +74,7 @@ if Code.ensure_loaded?(Igniter) do
         "--name",
         "feetech_controller"
       ])
-      |> lift_robot_opts_to_function(robot_module, device)
+      |> lift_robot_opts_to_function(robot_module)
       |> add_arm_commands(robot_module)
     end
 
@@ -179,14 +179,16 @@ if Code.ensure_loaded?(Igniter) do
       """
     end
 
-    # Replaces the inline robot child-spec opts in `application.ex` with a call
-    # to `robot_opts()`, and inserts a private `robot_opts/0` function that
-    # branches on `SIMULATE` env: simulation mode if set, hardware opts
-    # otherwise. Matches the bb_example_so101 convention.
-    defp lift_robot_opts_to_function(igniter, robot_module, device) do
+    # Replaces the robot child-spec opts in `application.ex` with a call to
+    # `robot_opts()`, and inserts a private `robot_opts/0` function that
+    # branches on `SIMULATE` env: simulation mode if set, otherwise the opts
+    # configured in the application environment (the Feetech device default is
+    # written to `config/config.exs` by the composed `bb_servo_feetech.install`).
+    # Matches the bb_example_so101 convention.
+    defp lift_robot_opts_to_function(igniter, robot_module) do
       igniter
       |> replace_robot_child_opts(robot_module)
-      |> add_robot_opts_function(device)
+      |> add_robot_opts_function(robot_module)
     end
 
     defp replace_robot_child_opts(igniter, robot_module) do
@@ -197,9 +199,10 @@ if Code.ensure_loaded?(Igniter) do
       )
     end
 
-    defp add_robot_opts_function(igniter, device) do
+    defp add_robot_opts_function(igniter, robot_module) do
       app_module = application_module(igniter)
-      code = robot_opts_function_code(device)
+      app_name = Igniter.Project.Application.app_name(igniter)
+      code = robot_opts_function_code(app_name, robot_module)
 
       Module.find_and_update_module!(igniter, app_module, fn zipper ->
         if robot_opts_defined?(zipper) do
@@ -223,13 +226,13 @@ if Code.ensure_loaded?(Igniter) do
       Elixir.Module.concat(Module.module_name_prefix(igniter), Application)
     end
 
-    defp robot_opts_function_code(device) do
+    defp robot_opts_function_code(app_name, robot_module) do
       """
       defp robot_opts do
         if System.get_env("SIMULATE") do
           [simulation: :kinematic]
         else
-          [params: [config: [feetech: [device: #{inspect(device)}]]]]
+          Application.get_env(#{inspect(app_name)}, #{inspect(robot_module)}, [])
         end
       end
       """
