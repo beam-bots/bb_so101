@@ -9,7 +9,7 @@ defmodule BB.SO101.MixProject do
   Beam Bots package for the SO-101 6-DOF robot arm from TheRobotStudio.
   """
 
-  @version "0.2.0"
+  @version "0.2.1"
 
   def project do
     [

@@ -11,6 +11,15 @@ See [Conventional Commits](Https://conventionalcommits.org) for commit guideline
 
 <!-- changelog -->
 
+## [v0.2.1](https://github.com/beam-bots/bb_so101/compare/v0.2.0...v0.2.1) (2026-05-27)
+
+
+
+
+### Improvements:
+
+* load hardware robot opts from the application environment (#6) by James Harton
+
 ## [v0.2.0](https://github.com/beam-bots/bb_so101/compare/v0.1.1...v0.2.0) (2026-05-21)
 
 
