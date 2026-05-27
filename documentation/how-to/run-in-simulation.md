@@ -39,10 +39,19 @@ defp robot_opts do
   if System.get_env("SIMULATE") do
     [simulation: :kinematic]
   else
-    [params: [config: [feetech: [device: "/dev/ttyUSB0"]]]]
+    Application.get_env(:my_app, MyApp.Robot, [])
   end
 end
 ```
+
+The hardware opts come from the application environment. The installer writes
+the default device to `config/config.exs`:
+
+```elixir
+config :my_app, MyApp.Robot, params: [config: [feetech: [device: "/dev/ttyUSB0"]]]
+```
+
+Change the serial device there rather than editing `application.ex`.
 
 When `SIMULATE` is set, the robot is started with `simulation: :kinematic`.
 `BB`'s supervisor reads that option and:

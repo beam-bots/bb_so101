@@ -88,18 +88,18 @@ defmodule Mix.Tasks.BbSo101.InstallTest do
       assert robot =~ "param(:baud_rate"
     end
 
-    test "honours a custom --device option in the generated robot_opts/0" do
+    test "honours a custom --device option in the generated config" do
       igniter =
         test_project()
         |> Igniter.compose_task("bb_so101.install", ["--device", "/dev/ttyACM0"])
         |> apply_igniter!()
 
-      application =
+      config =
         igniter.rewrite
-        |> Rewrite.source!("lib/test/application.ex")
+        |> Rewrite.source!("config/config.exs")
         |> Rewrite.Source.get(:content)
 
-      assert application =~ "/dev/ttyACM0"
+      assert config =~ "/dev/ttyACM0"
     end
   end
 
@@ -146,7 +146,22 @@ defmodule Mix.Tasks.BbSo101.InstallTest do
       assert application =~ ~s|defp robot_opts|
       assert application =~ ~s|System.get_env("SIMULATE")|
       assert application =~ ~s|simulation: :kinematic|
-      assert application =~ ~s|params: [config: [feetech: [device: "/dev/ttyUSB0"]]]|
+      assert application =~ ~s|Application.get_env(:test, Test.Robot, [])|
+    end
+
+    test "writes the feetech device default to config/config.exs" do
+      igniter =
+        test_project()
+        |> Igniter.compose_task("bb_so101.install")
+        |> apply_igniter!()
+
+      config =
+        igniter.rewrite
+        |> Rewrite.source!("config/config.exs")
+        |> Rewrite.Source.get(:content)
+
+      assert config =~
+               ~s|config :test, Test.Robot, params: [config: [feetech: [device: "/dev/ttyUSB0"]]]|
     end
   end
 

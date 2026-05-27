@@ -79,7 +79,7 @@ defmodule BB.SO101.MixProject do
 
   defp deps do
     [
-      {:bb, bb_dep("~> 0.16")},
+      {:bb, bb_dep("~> 0.20")},
       {:bb_servo_feetech, bb_dep("~> 0.2", :bb_servo_feetech)},
       {:feetech, bb_dep("~> 0.2", :feetech)},
 
