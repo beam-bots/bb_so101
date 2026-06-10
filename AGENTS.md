@@ -43,11 +43,14 @@ individual tools.
 
 ### Installer composition
 
-`bb_so101.install` composes the upstream BB installers and post-processes the
-output:
+`bb_so101.install` composes the upstream BB installers and fills in the SO-101
+topology:
 
 1. `bb.install` — creates the base `{App}.Robot` module with stock `arm`/`disarm`
-   commands and an empty `link :base_link do end`.
+   commands and an empty `link :base_link do end`. It also generates the
+   `robot_opts/0` helper in `application.ex` that branches on `SIMULATE` to boot
+   in `:kinematic` simulation, so this installer no longer post-processes the
+   supervision tree.
 2. `BB.Igniter.populate_link/4` — fills the empty `:base_link` with the full
    SO-101 topology (6 revolute joints, visual geometry, servo IDs, calibrated
    joint limits).
@@ -55,10 +58,6 @@ output:
    `:config.:feetech` param group, and the device path on the robot's child
    spec. Passes `--name feetech_controller` to avoid a name collision with the
    `:feetech` param group.
-4. **Local post-processing** — lifts the inline robot opts out of
-   `application.ex` into a private `robot_opts/0` helper that branches on
-   `SIMULATE` (returns `[simulation: :kinematic]` when set; otherwise the
-   hardware opts).
 
 For a LiveView dashboard, users run `mix igniter.install bb_liveview` as a
 separate step after `bb_so101.install`. It's deliberately not composed because
