@@ -55,9 +55,9 @@ topology:
    SO-101 topology (6 revolute joints, visual geometry, servo IDs, calibrated
    joint limits).
 3. `bb_servo_feetech.install` — adds the Feetech controller, parameter bridge,
-   `:config.:feetech` param group, and the device path on the robot's child
-   spec. Passes `--name feetech_controller` to avoid a name collision with the
-   `:feetech` param group.
+   `:config.:feetech` param group, and the runtime device configuration. Passes
+   `--name feetech_controller` to avoid a name collision with the `:feetech`
+   param group.
 
 For a LiveView dashboard, users run `mix igniter.install bb_liveview` as a
 separate step after `bb_so101.install`. It's deliberately not composed because

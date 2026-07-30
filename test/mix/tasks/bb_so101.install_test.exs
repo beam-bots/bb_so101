@@ -88,7 +88,7 @@ defmodule Mix.Tasks.BbSo101.InstallTest do
       assert robot =~ "param(:baud_rate"
     end
 
-    test "honours a custom --device option in the generated config" do
+    test "uses a custom --device option as the runtime fallback" do
       igniter =
         test_project()
         |> Igniter.compose_task("bb_so101.install", ["--device", "/dev/ttyACM0"])
@@ -96,10 +96,10 @@ defmodule Mix.Tasks.BbSo101.InstallTest do
 
       config =
         igniter.rewrite
-        |> Rewrite.source!("config/config.exs")
+        |> Rewrite.source!("config/runtime.exs")
         |> Rewrite.Source.get(:content)
 
-      assert config =~ "/dev/ttyACM0"
+      assert config =~ ~s|System.get_env("FEETECH_DEVICE", "/dev/ttyACM0")|
     end
   end
 
@@ -149,7 +149,7 @@ defmodule Mix.Tasks.BbSo101.InstallTest do
       assert application =~ ~s|Application.get_env(:test, Test.Robot, [])|
     end
 
-    test "writes the feetech device default to config/config.exs" do
+    test "writes the feetech device default to config/runtime.exs" do
       igniter =
         test_project()
         |> Igniter.compose_task("bb_so101.install")
@@ -157,11 +157,11 @@ defmodule Mix.Tasks.BbSo101.InstallTest do
 
       config =
         igniter.rewrite
-        |> Rewrite.source!("config/config.exs")
+        |> Rewrite.source!("config/runtime.exs")
         |> Rewrite.Source.get(:content)
 
       assert config =~
-               ~s|config :test, Test.Robot, params: [config: [feetech: [device: "/dev/ttyUSB0"]]]|
+               ~s|device: System.get_env("FEETECH_DEVICE", "/dev/ttyUSB0")|
     end
   end
 

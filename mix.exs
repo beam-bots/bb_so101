@@ -80,8 +80,8 @@ defmodule BB.SO101.MixProject do
 
   defp deps do
     [
-      {:bb, bb_dep("~> 0.20")},
-      {:bb_servo_feetech, bb_dep("~> 0.2", :bb_servo_feetech)},
+      {:bb, bb_dep("~> 0.22 and >= 0.22.3")},
+      {:bb_servo_feetech, bb_dep("~> 0.3 and >= 0.3.5", :bb_servo_feetech)},
       {:feetech, bb_dep("~> 0.2", :feetech)},
 
       # dev/test
