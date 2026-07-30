@@ -50,11 +50,11 @@ calibrating, and driving the dashboard.
 | Option     | Default         | Description                                |
 |------------|-----------------|--------------------------------------------|
 | `--robot`  | `{App}.Robot`   | Module name for the generated robot module |
-| `--device` | `/dev/ttyUSB0`  | Default serial device path                 |
+| `--device` | `/dev/ttyUSB0`  | Fallback serial device path                |
 
-The generated `application.ex` reads the device path from `SIMULATE` / your
-config and boots the robot in `:kinematic` simulation mode when `SIMULATE=1` is
-set in the environment.
+The generated `config/runtime.exs` reads the device path from `FEETECH_DEVICE`,
+falling back to `--device`. The generated `application.ex` boots the robot in
+`:kinematic` simulation mode when `SIMULATE=1` is set in the environment.
 
 ## Operator Tasks
 

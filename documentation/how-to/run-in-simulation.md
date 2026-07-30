@@ -45,13 +45,19 @@ end
 ```
 
 The hardware opts come from the application environment. The installer writes
-the default device to `config/config.exs`:
+the device configuration to `config/runtime.exs`:
 
 ```elixir
-config :my_app, MyApp.Robot, params: [config: [feetech: [device: "/dev/ttyUSB0"]]]
+config :my_app, MyApp.Robot,
+  params: [
+    config: [
+      feetech: [device: System.get_env("FEETECH_DEVICE", "/dev/ttyUSB0")]
+    ]
+  ]
 ```
 
-Change the serial device there rather than editing `application.ex`.
+Set `FEETECH_DEVICE` to override the fallback without editing configuration or
+recompiling the application.
 
 When `SIMULATE` is set, the robot is started with `simulation: :kinematic`.
 `BB`'s supervisor reads that option and:
