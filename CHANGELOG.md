@@ -11,6 +11,15 @@ See [Conventional Commits](Https://conventionalcommits.org) for commit guideline
 
 <!-- changelog -->
 
+## [v0.2.3](https://github.com/beam-bots/bb_so101/compare/v0.2.2...v0.2.3) (2026-07-30)
+
+
+
+
+### Improvements:
+
+* load servo device config at runtime (#45) by James Harton
+
 ## [v0.2.2](https://github.com/beam-bots/bb_so101/compare/v0.2.1...v0.2.2) (2026-06-25)
 
 
