@@ -66,7 +66,7 @@ defmodule Mix.Tasks.BbSo101.InstallTest do
         |> Rewrite.source!("lib/test/robot.ex")
         |> Rewrite.Source.get(:content)
 
-      assert robot =~ "controller(\n      :feetech_controller"
+      assert robot =~ "controller :feetech_controller,"
       assert robot =~ "BB.Servo.Feetech.Controller"
       assert robot =~ "Feetech.ControlTable.STS3215"
     end
@@ -82,10 +82,10 @@ defmodule Mix.Tasks.BbSo101.InstallTest do
         |> Rewrite.source!("lib/test/robot.ex")
         |> Rewrite.Source.get(:content)
 
-      assert robot =~ "bridge(:feetech_bridge"
+      assert robot =~ "bridge :feetech_bridge"
       assert robot =~ "group :feetech"
-      assert robot =~ "param(:device"
-      assert robot =~ "param(:baud_rate"
+      assert robot =~ "param :device"
+      assert robot =~ "param :baud_rate"
     end
 
     test "uses a custom --device option as the runtime fallback" do
