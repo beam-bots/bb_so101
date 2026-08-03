@@ -11,6 +11,17 @@ See [Conventional Commits](Https://conventionalcommits.org) for commit guideline
 
 <!-- changelog -->
 
+## [v0.2.4](https://github.com/beam-bots/bb_so101/compare/v0.2.3...v0.2.4) (2026-08-03)
+
+
+
+
+### Bug Fixes:
+
+* deps: bump `bb` to 0.26.0 for the corrected `locals_without_parens` export (#50) by James Harton
+
+* test: expect paren-less DSL from the installer (#48) by James Harton
+
 ## [v0.2.3](https://github.com/beam-bots/bb_so101/compare/v0.2.2...v0.2.3) (2026-07-30)
 
 
