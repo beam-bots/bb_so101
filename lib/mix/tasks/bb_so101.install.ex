@@ -214,7 +214,7 @@ if Code.ensure_loaded?(Igniter) do
           lower(~u(-110 degree))
           upper(~u(110 degree))
           effort(~u(2.5 newton_meter))
-          velocity(~u(360 degree_per_second))
+          velocity(~u(333 degree_per_second))
           acceleration(~u(2160 degree_per_square_second))
         end
 
@@ -264,7 +264,7 @@ if Code.ensure_loaded?(Igniter) do
               lower(~u(-10 degree))
               upper(~u(190 degree))
               effort(~u(2.5 newton_meter))
-              velocity(~u(360 degree_per_second))
+              velocity(~u(333 degree_per_second))
               acceleration(~u(2160 degree_per_square_second))
             end
 
@@ -315,7 +315,7 @@ if Code.ensure_loaded?(Igniter) do
                   lower(~u(-187 degree))
                   upper(~u(7 degree))
                   effort(~u(2.5 newton_meter))
-                  velocity(~u(360 degree_per_second))
+                  velocity(~u(333 degree_per_second))
                   acceleration(~u(2160 degree_per_square_second))
                 end
 
@@ -367,7 +367,7 @@ if Code.ensure_loaded?(Igniter) do
                       lower(~u(-95 degree))
                       upper(~u(95 degree))
                       effort(~u(2.5 newton_meter))
-                      velocity(~u(360 degree_per_second))
+                      velocity(~u(333 degree_per_second))
                       acceleration(~u(2160 degree_per_square_second))
                     end
 
@@ -418,7 +418,7 @@ if Code.ensure_loaded?(Igniter) do
                           lower(~u(-160 degree))
                           upper(~u(160 degree))
                           effort(~u(2.5 newton_meter))
-                          velocity(~u(360 degree_per_second))
+                          velocity(~u(333 degree_per_second))
                           acceleration(~u(2160 degree_per_square_second))
                         end
 
@@ -469,7 +469,7 @@ if Code.ensure_loaded?(Igniter) do
                               lower(~u(-10 degree))
                               upper(~u(100 degree))
                               effort(~u(2.5 newton_meter))
-                              velocity(~u(360 degree_per_second))
+                              velocity(~u(333 degree_per_second))
                               acceleration(~u(2160 degree_per_square_second))
                             end
 
