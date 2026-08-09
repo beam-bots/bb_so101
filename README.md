@@ -73,6 +73,19 @@ See the [Set Up Servo IDs](https://hexdocs.pm/bb_so101/setup-servo-ids.html) and
 [Calibrate the Arm](https://hexdocs.pm/bb_so101/calibrate-servos.html) how-to
 guides for detail.
 
+## Upgrading
+
+```bash
+mix bb_so101.upgrade
+```
+
+Robots generated before the joint limits were corrected declare speeds and
+accelerations the servos cannot reach — and since
+`BB.Servo.Feetech.Actuator` now refuses to start when the servo will not accept
+the acceleration it is given, such a robot will not boot. The upgrader rewrites
+the limits of every joint driven by a Feetech actuator, leaving joints driven
+by anything else alone.
+
 ## Requirements
 
 - Elixir ~> 1.19
