@@ -27,8 +27,19 @@ defmodule Mix.Tasks.BbSo101.Calibrate do
   2. Move every joint through its FULL range of motion
   3. The display shows live min/max tracking for each joint
   4. Press Enter when done
-  5. Calculates mechanical center for each joint
-  6. Sets position_offset so center corresponds to 0 radians
+  5. Locates each joint's zero within the travel it recorded
+  6. Sets position_offset so that zero corresponds to 0 radians
+
+  ## Where zero goes
+
+  For most joints, zero is the midpoint of the recorded travel. They are
+  symmetric about it, and the midpoint splits the cost of not quite reaching a
+  stop across both ends.
+
+  The gripper is anchored to its closed stop instead, 10° below zero — the
+  lower limit in the official SO-101 URDF. It is the one joint whose physical
+  endpoint matters, because "actually closed" is what gripping depends on, so
+  the slack is pushed to the open end where nothing relies on it.
 
   ## Example
 
@@ -59,6 +70,19 @@ defmodule Mix.Tasks.BbSo101.Calibrate do
     {:wrist_roll, 5, "Roll"},
     {:gripper, 6, "Grip"}
   ]
+
+  # Where each joint's zero sits within the travel that was recorded.
+  #
+  # Most of the arm is symmetric about zero, so the midpoint of the sweep is as
+  # good a reference as any, and it halves the cost of not quite reaching a stop
+  # because the error is split across both ends.
+  #
+  # The gripper is the exception. Its zero is 10° open — the lower limit in the
+  # official URDF — and "actually closed" is the one position on this arm that
+  # has to be right, since that is what holding something depends on. So it
+  # anchors to the closed stop and lets the slack fall at the open end, where
+  # nothing depends on it.
+  @zero_reference %{gripper: {:above_min, 10}}
 
   @steps_per_revolution 4096
   @center_position div(@steps_per_revolution, 2)
@@ -370,9 +394,9 @@ defmodule Mix.Tasks.BbSo101.Calibrate do
   defp process_joint_result(pid, name, servo_id, data, dry_run) do
     range = data.max_unwrapped - data.min_unwrapped
 
-    # Calculate center in unwrapped space, then convert to raw (0-4095)
-    center_unwrapped = div(data.min_unwrapped + data.max_unwrapped, 2)
-    center_raw = Integer.mod(center_unwrapped, @steps_per_revolution)
+    # Locate the zero in unwrapped space, then convert to raw (0-4095)
+    {zero_unwrapped, rule} = zero_point(name, data)
+    center_raw = Integer.mod(zero_unwrapped, @steps_per_revolution)
 
     # Firmware applies: Present_Position = Actual_Position - Offset
     # So: 2048 = center_raw - offset, therefore offset = center_raw - 2048
@@ -383,7 +407,7 @@ defmodule Mix.Tasks.BbSo101.Calibrate do
     Mix.shell().info("""
       #{format_joint(name)} (ID #{servo_id}):
         Range: #{range} steps (#{format_degrees(steps_to_degrees(range))})
-        Center: #{center_raw} -> Offset: #{offset}
+        Zero: #{center_raw} (#{rule}) -> Offset: #{offset}
     """)
 
     if dry_run do
@@ -508,6 +532,21 @@ defmodule Mix.Tasks.BbSo101.Calibrate do
   defp format_baud(rate) when rate >= 1_000_000, do: "#{div(rate, 1_000_000)}M baud"
   defp format_baud(rate) when rate >= 1000, do: "#{div(rate, 1000)}k baud"
   defp format_baud(rate), do: "#{rate} baud"
+
+  @doc false
+  # Public so the rule can be tested without a servo on the bench.
+  def zero_point(name, data) do
+    case Map.get(@zero_reference, name, :midpoint) do
+      :midpoint ->
+        {div(data.min_unwrapped + data.max_unwrapped, 2), "midpoint of travel"}
+
+      {:above_min, degrees} ->
+        {data.min_unwrapped + round(degrees_to_steps(degrees)),
+         "#{format_degrees(degrees / 1)} above the lower stop"}
+    end
+  end
+
+  defp degrees_to_steps(degrees), do: degrees * @steps_per_revolution / 360.0
 
   defp steps_to_degrees(steps), do: steps * 360.0 / @steps_per_revolution
 
