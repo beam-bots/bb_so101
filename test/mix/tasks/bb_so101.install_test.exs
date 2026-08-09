@@ -29,6 +29,38 @@ defmodule Mix.Tasks.BbSo101.InstallTest do
       assert robot =~ "BB.Servo.Feetech.Actuator"
     end
 
+    test "declares limits the servos can actually reach" do
+      igniter =
+        test_project()
+        |> Igniter.compose_task("bb_so101.install")
+        |> apply_igniter!()
+
+      robot =
+        igniter.rewrite
+        |> Rewrite.source!("lib/test/robot.ex")
+        |> Rewrite.Source.get(:content)
+
+      velocities = Regex.scan(~r/velocity\(~u\(([\d.]+) degree_per_second\)\)/, robot)
+
+      accelerations =
+        Regex.scan(~r/acceleration\(~u\(([\d.]+) degree_per_square_second\)\)/, robot)
+
+      assert length(velocities) == 6
+      assert length(accelerations) == 6
+
+      # An STS3215 tops out near 300 deg/s, and clamps its acceleration
+      # register at 439.5 deg/s^2 however much more is written. Anything above
+      # either is a figure BeginMotion will predict against and the joint will
+      # never meet — and the actuator refuses to start on the acceleration.
+      for [_, value] <- velocities do
+        assert String.to_float(value <> ".0") <= 300.0
+      end
+
+      for [_, value] <- accelerations do
+        assert String.to_float(value <> ".0") <= 439.5
+      end
+    end
+
     test "scaffolds the stock arm/disarm commands via bb.install" do
       igniter =
         test_project()

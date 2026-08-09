@@ -20,20 +20,40 @@ defmodule Mix.Tasks.BbSo101.Calibrate do
 
     * `--baud-rate`, `-b` - Baud rate (default: 1000000)
     * `--dry-run`, `-n` - Show what would be done without writing offsets
+    * `--joint`, `-j` - Calibrate only these joints. Repeatable, and accepts a
+      comma-separated list. Defaults to all of them.
 
   ## Process
 
-  1. Disables torque on ALL servos so you can move the arm freely
-  2. Move every joint through its FULL range of motion
+  1. Disables torque on the servos being calibrated so you can move them freely
+  2. Move each of those joints through its FULL range of motion
   3. The display shows live min/max tracking for each joint
   4. Press Enter when done
-  5. Calculates mechanical center for each joint
-  6. Sets position_offset so center corresponds to 0 radians
+  5. Locates each joint's zero within the travel it recorded
+  6. Sets position_offset so that zero corresponds to 0 radians
+
+  ## Where zero goes
+
+  For most joints, zero is the midpoint of the recorded travel. They are
+  symmetric about it, and the midpoint splits the cost of not quite reaching a
+  stop across both ends.
+
+  The gripper is anchored to its closed stop instead, 10° below zero — the
+  lower limit in the official SO-101 URDF. It is the one joint whose physical
+  endpoint matters, because "actually closed" is what gripping depends on, so
+  the slack is pushed to the open end where nothing relies on it.
+
+  Calibration begins by resetting `position_offset` to zero, so a joint that is
+  not listed keeps the calibration it already has. Name the joints you have
+  actually disturbed — after re-mounting a horn or swapping a servo — rather
+  than recalibrating the whole arm and having to move every joint again.
 
   ## Example
 
       mix bb_so101.calibrate /dev/ttyUSB0
       mix bb_so101.calibrate /dev/ttyUSB0 --dry-run
+      mix bb_so101.calibrate /dev/ttyUSB0 --joint gripper
+      mix bb_so101.calibrate /dev/ttyUSB0 -j wrist_roll -j gripper
   """
 
   use Mix.Task
@@ -42,12 +62,14 @@ defmodule Mix.Tasks.BbSo101.Calibrate do
 
   @switches [
     baud_rate: :integer,
-    dry_run: :boolean
+    dry_run: :boolean,
+    joint: :keep
   ]
 
   @aliases [
     b: :baud_rate,
-    n: :dry_run
+    n: :dry_run,
+    j: :joint
   ]
 
   # Joints in order from base to gripper
@@ -60,37 +82,86 @@ defmodule Mix.Tasks.BbSo101.Calibrate do
     {:gripper, 6, "Grip"}
   ]
 
+  # Where each joint's zero sits within the travel that was recorded.
+  #
+  # Most of the arm is symmetric about zero, so the midpoint of the sweep is as
+  # good a reference as any, and it halves the cost of not quite reaching a stop
+  # because the error is split across both ends.
+  #
+  # The gripper is the exception. Its zero is 10° open — the lower limit in the
+  # official URDF — and "actually closed" is the one position on this arm that
+  # has to be right, since that is what holding something depends on. So it
+  # anchors to the closed stop and lets the slack fall at the open end, where
+  # nothing depends on it.
+  @zero_reference %{gripper: {:above_min, 10}}
+
   @steps_per_revolution 4096
   @center_position div(@steps_per_revolution, 2)
   @max_offset_magnitude 2047
+  @box_width 63
 
   @impl Mix.Task
   def run(args) do
     {opts, args} = OptionParser.parse!(args, strict: @switches, aliases: @aliases)
 
-    case args do
-      [port] ->
-        calibrate_servos(port, opts)
-
-      _ ->
+    with {:ok, port} <- port_argument(args),
+         {:ok, joints} <- selected_joints(opts) do
+      calibrate_servos(port, joints, opts)
+    else
+      {:error, :usage} ->
         Mix.shell().error("Usage: mix bb_so101.calibrate PORT [OPTIONS]")
         Mix.shell().error("Run `mix help bb_so101.calibrate` for more information.")
+        exit({:shutdown, 1})
+
+      {:error, {:unknown_joints, unknown}} ->
+        Mix.shell().error(
+          "Unknown joint(s): #{Enum.join(unknown, ", ")}\n" <>
+            "Valid joints: #{Enum.map_join(@joints, ", ", fn {name, _, _} -> name end)}"
+        )
+
         exit({:shutdown, 1})
     end
   end
 
-  defp calibrate_servos(port, opts) do
+  defp port_argument([port]), do: {:ok, port}
+  defp port_argument(_args), do: {:error, :usage}
+
+  # Matched as strings so a typo can't mint an atom, and split on commas so
+  # `-j wrist_roll,gripper` reads the way people expect it to.
+  defp selected_joints(opts) do
+    names =
+      opts
+      |> Keyword.get_values(:joint)
+      |> Enum.flat_map(&String.split(&1, ","))
+      |> Enum.map(&String.trim/1)
+      |> Enum.reject(&(&1 == ""))
+
+    case names do
+      [] ->
+        {:ok, @joints}
+
+      names ->
+        known = Map.new(@joints, fn {name, _, _} = joint -> {Atom.to_string(name), joint} end)
+
+        case Enum.reject(names, &Map.has_key?(known, &1)) do
+          [] -> {:ok, names |> Enum.uniq() |> Enum.map(&Map.fetch!(known, &1))}
+          unknown -> {:error, {:unknown_joints, unknown}}
+        end
+    end
+  end
+
+  defp calibrate_servos(port, joints, opts) do
     baud_rate = Keyword.get(opts, :baud_rate, 1_000_000)
     dry_run = Keyword.get(opts, :dry_run, false)
 
-    print_header(dry_run)
+    print_header(joints, dry_run)
 
     Mix.shell().info("Connecting to #{port} at #{format_baud(baud_rate)}...")
 
     case Feetech.start_link(port: port, baud_rate: baud_rate, timeout: 200) do
       {:ok, pid} ->
         try do
-          run_calibration(pid, dry_run)
+          run_calibration(pid, joints, dry_run)
         after
           Feetech.stop(pid)
         end
@@ -105,25 +176,33 @@ defmodule Mix.Tasks.BbSo101.Calibrate do
     end
   end
 
-  defp print_header(dry_run) do
+  defp print_header(joints, dry_run) do
     mode = if dry_run, do: " (DRY RUN)", else: ""
+    all? = length(joints) == length(@joints)
+    scope = Enum.map_join(joints, ", ", fn {name, _, _} -> name end)
+
+    title = String.pad_trailing("         SO-101 Manual Servo Calibration#{mode}", @box_width)
 
     Mix.shell().info("""
 
-    ╔═══════════════════════════════════════════════════════════════╗
-    ║         SO-101 Manual Servo Calibration#{String.pad_trailing(mode, 14)}║
-    ╚═══════════════════════════════════════════════════════════════╝
+    ╔#{String.duplicate("═", @box_width)}╗
+    ║#{title}║
+    ╚#{String.duplicate("═", @box_width)}╝
 
-    This will disable torque on ALL servos so you can move the arm freely.
+    Calibrating: #{if all?, do: "all joints", else: scope}
 
-    Move EVERY joint through its FULL range of motion (to both limits).
+    This disables torque on those servos so you can move them freely.
+    Move each one through its FULL range of motion (to both limits).
     Press Enter when done to record the ranges and calculate offsets.
-
     """)
+
+    unless all? do
+      Mix.shell().info("Joints not listed keep the calibration they already have.\n")
+    end
   end
 
-  defp run_calibration(pid, dry_run) do
-    {found, missing} = check_servos(pid)
+  defp run_calibration(pid, joints, dry_run) do
+    {found, missing} = check_servos(pid, joints)
 
     if missing != [] do
       Mix.shell().error("Missing servos: #{inspect(Enum.map(missing, fn {_, id, _} -> id end))}")
@@ -168,8 +247,8 @@ defmodule Mix.Tasks.BbSo101.Calibrate do
     end
   end
 
-  defp check_servos(pid) do
-    Enum.split_with(@joints, fn {_name, servo_id, _desc} ->
+  defp check_servos(pid, joints) do
+    Enum.split_with(joints, fn {_name, servo_id, _desc} ->
       case Feetech.ping(pid, servo_id) do
         {:ok, _} -> true
         _ -> false
@@ -189,7 +268,7 @@ defmodule Mix.Tasks.BbSo101.Calibrate do
     Mix.shell().info("""
 
     ═══════════════════════════════════════════════════════════════
-    Torque DISABLED on all servos. Move the arm freely now!
+    Torque DISABLED on the servos above. Move them freely now!
 
     Move each joint to BOTH of its mechanical limits.
     Press Enter when you've moved all joints through their full range.
@@ -370,9 +449,9 @@ defmodule Mix.Tasks.BbSo101.Calibrate do
   defp process_joint_result(pid, name, servo_id, data, dry_run) do
     range = data.max_unwrapped - data.min_unwrapped
 
-    # Calculate center in unwrapped space, then convert to raw (0-4095)
-    center_unwrapped = div(data.min_unwrapped + data.max_unwrapped, 2)
-    center_raw = Integer.mod(center_unwrapped, @steps_per_revolution)
+    # Locate the zero in unwrapped space, then convert to raw (0-4095)
+    {zero_unwrapped, rule} = zero_point(name, data)
+    center_raw = Integer.mod(zero_unwrapped, @steps_per_revolution)
 
     # Firmware applies: Present_Position = Actual_Position - Offset
     # So: 2048 = center_raw - offset, therefore offset = center_raw - 2048
@@ -383,7 +462,7 @@ defmodule Mix.Tasks.BbSo101.Calibrate do
     Mix.shell().info("""
       #{format_joint(name)} (ID #{servo_id}):
         Range: #{range} steps (#{format_degrees(steps_to_degrees(range))})
-        Center: #{center_raw} -> Offset: #{offset}
+        Zero: #{center_raw} (#{rule}) -> Offset: #{offset}
     """)
 
     if dry_run do
@@ -508,6 +587,21 @@ defmodule Mix.Tasks.BbSo101.Calibrate do
   defp format_baud(rate) when rate >= 1_000_000, do: "#{div(rate, 1_000_000)}M baud"
   defp format_baud(rate) when rate >= 1000, do: "#{div(rate, 1000)}k baud"
   defp format_baud(rate), do: "#{rate} baud"
+
+  @doc false
+  # Public so the rule can be tested without a servo on the bench.
+  def zero_point(name, data) do
+    case Map.get(@zero_reference, name, :midpoint) do
+      :midpoint ->
+        {div(data.min_unwrapped + data.max_unwrapped, 2), "midpoint of travel"}
+
+      {:above_min, degrees} ->
+        {data.min_unwrapped + round(degrees_to_steps(degrees)),
+         "#{format_degrees(degrees / 1)} above the lower stop"}
+    end
+  end
+
+  defp degrees_to_steps(degrees), do: degrees * @steps_per_revolution / 360.0
 
   defp steps_to_degrees(steps), do: steps * 360.0 / @steps_per_revolution
 
