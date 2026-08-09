@@ -34,6 +34,19 @@ if Code.ensure_loaded?(Igniter) do
 
       * `--robot` - Robot module name (defaults to `{AppPrefix}.Robot`)
       * `--device` - Fallback serial device path (default `/dev/ttyUSB0`)
+
+    ## Joint limits
+
+    The generated robot declares 300 degree_per_second and 400
+    degree_per_square_second on every joint. These are measured figures rather
+    than round ones — an STS3215 tops out near 300 deg/s, and its acceleration
+    register clamps at 439.5 deg/s^2 regardless of what is written to it.
+
+    They are what `BB.Message.Actuator.BeginMotion` computes arrival times
+    from, so raising them makes motion estimates wrong rather than making the
+    arm faster. `BB.Servo.Feetech.Actuator` reads the acceleration register
+    back at startup and refuses to run if the servo did not accept what it was
+    given.
     """
 
     use Igniter.Mix.Task
@@ -181,6 +194,14 @@ if Code.ensure_loaded?(Igniter) do
 
     defp so101_base_link_body do
       """
+      # Every joint is limited to 300 degree_per_second and 400
+      # degree_per_square_second. Both are what an STS3215 actually manages,
+      # not round numbers: the servo tops out near 300 deg/s, and its
+      # acceleration register clamps at 439.5 deg/s^2 however much more you
+      # write. Raising them will not make the arm quicker — it will make
+      # BeginMotion predict arrivals the joint cannot meet, and
+      # BB.Servo.Feetech.Actuator refuses to start if the acceleration is
+      # beyond what the servo accepts.
       visual do
         origin do
           z(~u(0.031 meter))
@@ -214,8 +235,8 @@ if Code.ensure_loaded?(Igniter) do
           lower(~u(-110 degree))
           upper(~u(110 degree))
           effort(~u(2.5 newton_meter))
-          velocity(~u(360 degree_per_second))
-          acceleration(~u(2160 degree_per_square_second))
+          velocity(~u(300 degree_per_second))
+          acceleration(~u(400 degree_per_square_second))
         end
 
         actuator :shoulder_pan_servo,
@@ -264,8 +285,8 @@ if Code.ensure_loaded?(Igniter) do
               lower(~u(-10 degree))
               upper(~u(190 degree))
               effort(~u(2.5 newton_meter))
-              velocity(~u(360 degree_per_second))
-              acceleration(~u(2160 degree_per_square_second))
+              velocity(~u(300 degree_per_second))
+              acceleration(~u(400 degree_per_square_second))
             end
 
             actuator :shoulder_lift_servo,
@@ -315,8 +336,8 @@ if Code.ensure_loaded?(Igniter) do
                   lower(~u(-187 degree))
                   upper(~u(7 degree))
                   effort(~u(2.5 newton_meter))
-                  velocity(~u(360 degree_per_second))
-                  acceleration(~u(2160 degree_per_square_second))
+                  velocity(~u(300 degree_per_second))
+                  acceleration(~u(400 degree_per_square_second))
                 end
 
                 actuator :elbow_servo,
@@ -367,8 +388,8 @@ if Code.ensure_loaded?(Igniter) do
                       lower(~u(-95 degree))
                       upper(~u(95 degree))
                       effort(~u(2.5 newton_meter))
-                      velocity(~u(360 degree_per_second))
-                      acceleration(~u(2160 degree_per_square_second))
+                      velocity(~u(300 degree_per_second))
+                      acceleration(~u(400 degree_per_square_second))
                     end
 
                     actuator :wrist_flex_servo,
@@ -418,8 +439,8 @@ if Code.ensure_loaded?(Igniter) do
                           lower(~u(-160 degree))
                           upper(~u(160 degree))
                           effort(~u(2.5 newton_meter))
-                          velocity(~u(360 degree_per_second))
-                          acceleration(~u(2160 degree_per_square_second))
+                          velocity(~u(300 degree_per_second))
+                          acceleration(~u(400 degree_per_square_second))
                         end
 
                         actuator :wrist_roll_servo,
@@ -469,8 +490,8 @@ if Code.ensure_loaded?(Igniter) do
                               lower(~u(-10 degree))
                               upper(~u(100 degree))
                               effort(~u(2.5 newton_meter))
-                              velocity(~u(360 degree_per_second))
-                              acceleration(~u(2160 degree_per_square_second))
+                              velocity(~u(300 degree_per_second))
+                              acceleration(~u(400 degree_per_square_second))
                             end
 
                             actuator :gripper_servo,
