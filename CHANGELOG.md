@@ -11,6 +11,23 @@ See [Conventional Commits](Https://conventionalcommits.org) for commit guideline
 
 <!-- changelog -->
 
+## [v0.3.0](https://github.com/beam-bots/bb_so101/compare/v0.2.4...v0.3.0) (2026-08-09)
+### Breaking Changes:
+
+* generate the speed the servos actually reach (#54) by James Harton
+
+* generate limits the servos can actually reach (#60) by James Harton
+
+
+
+### Bug Fixes:
+
+* anchor the gripper's zero to its closed stop (#59) by James Harton
+
+### Improvements:
+
+* calibrate only the joints you have disturbed (#58) by James Harton
+
 ## [v0.2.4](https://github.com/beam-bots/bb_so101/compare/v0.2.3...v0.2.4) (2026-08-03)
 
 
