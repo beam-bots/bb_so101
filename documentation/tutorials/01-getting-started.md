@@ -136,8 +136,10 @@ The task:
 3. Asks you to **move every joint through its full range of motion** — bend
    each one to both mechanical limits, including opening and closing the
    gripper.
-4. When you press Enter, it computes the mid-point of each joint's observed
-   range, converts that to a position offset, and writes it to the servo.
+4. When you press Enter, it locates zero within each joint's observed range,
+   converts that to a position offset, and writes it to the servo. Zero is the
+   mid-point of the range for the five revolute joints; for the gripper it is
+   10° above the closed stop, which is where the URDF puts it.
 
 If you want to see the offsets before they're written, run it with
 `--dry-run` (or `-n`) first.

@@ -86,6 +86,22 @@ the acceleration it is given, such a robot will not boot. The upgrader rewrites
 the limits of every joint driven by a Feetech actuator, leaving joints driven
 by anything else alone.
 
+The gripper's transmission offset is not something the upgrader can decide for
+you. Robots generated before 0.4.0 declare a 45° offset on `gripper_servo`,
+which compensated for calibration zeroing the gripper at the midpoint of its
+sweep. Since 0.3.0 calibration anchors that zero to the closed stop instead, so
+an arm recalibrated on 0.3.0 or later has the correction applied twice and its
+gripper sits about 45° out. Which of the two is right depends on when the arm
+was last calibrated, not on which version generated it, so recalibrate the
+gripper and drop the offset together:
+
+```bash
+mix bb_so101.calibrate /dev/ttyUSB0 --joint gripper
+```
+
+then delete the `transmission` block from the `gripper_servo` actuator in your
+robot module.
+
 ## Requirements
 
 - Elixir ~> 1.19

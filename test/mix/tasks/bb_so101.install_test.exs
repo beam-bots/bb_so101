@@ -61,6 +61,23 @@ defmodule Mix.Tasks.BbSo101.InstallTest do
       end
     end
 
+    test "leaves the gripper's zero to calibration instead of a transmission offset" do
+      igniter =
+        test_project()
+        |> Igniter.compose_task("bb_so101.install")
+        |> apply_igniter!()
+
+      robot =
+        igniter.rewrite
+        |> Rewrite.source!("lib/test/robot.ex")
+        |> Rewrite.Source.get(:content)
+
+      [_, gripper] = Regex.run(~r/joint :gripper do(.*?)link :jaw_link do/s, robot)
+
+      assert gripper =~ "servo_id: 6"
+      refute gripper =~ "offset("
+    end
+
     test "scaffolds the stock arm/disarm commands via bb.install" do
       igniter =
         test_project()

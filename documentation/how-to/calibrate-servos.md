@@ -7,8 +7,10 @@ SPDX-License-Identifier: Apache-2.0
 # Calibrate the Arm
 
 `mix bb_so101.calibrate PORT` writes a position offset to each servo so that
-the joint's mechanical centre corresponds to `0 rad` in the BB DSL. Run it
-after assigning IDs, and any time you remount a servo horn or replace a servo.
+`0 rad` in the BB DSL lands where the joint's URDF says it should — the
+mechanical centre for most joints, 10° above the closed stop for the gripper.
+Run it after assigning IDs, and any time you remount a servo horn or replace a
+servo.
 
 ## Usage
 
@@ -33,16 +35,18 @@ mix bb_so101.calibrate /dev/ttyACM0 --baud-rate 500000
    for each revolute joint, all the way open and all the way closed for the
    gripper. Don't be subtle; push to the actual mechanical limits.
 4. Press Enter when you're done.
-5. For each joint, the task computes the midpoint of the observed range,
-   converts it to the servo's signed-magnitude offset format, and writes it to
-   EEPROM. The new offset takes effect immediately.
+5. For each joint, the task locates zero within the observed range, converts
+   it to the servo's sign-magnitude offset format, and writes it to EEPROM.
+   The new offset takes effect immediately. Zero is the midpoint of the range
+   for the five revolute joints; for the gripper it sits 10° above the closed
+   stop, so that "actually closed" is the end that stays accurate.
 
 Why this is needed: STS3215 servos have a 4096-step rotation and a factory
 default that puts step 2048 at the centre of rotation. But "the centre of
 rotation" doesn't necessarily coincide with the joint's mechanical centre —
 horns get pressed on at whatever angle they happened to be at. The offset
-shifts the servo's reported position so the mechanical centre reads as 2048
-(and therefore `0 rad` after BB's mapping).
+shifts the servo's reported position so the joint's zero reads as 2048 (and
+therefore `0 rad` after BB's mapping).
 
 ## Common adjustments
 
@@ -96,20 +100,25 @@ generated `robot.ex`:
 ```elixir
 joint :gripper do
   # ...
-  transmission do
-    offset(~u(45.0 degree))
-    reversed?(true)
+  actuator :gripper_servo,
+           {BB.Servo.Feetech.Actuator, servo_id: 6, controller: :feetech_controller} do
+    transmission do
+      reversed?(true)
+    end
   end
-
-  actuator(
-    :gripper_servo,
-    {BB.Servo.Feetech.Actuator, servo_id: 6, controller: :feetech_controller}
-  )
 end
 ```
 
 The other five joints have `reversed? true` baked into their transmission
 already; the gripper historically doesn't need it but kits vary.
+
+### Offsets can't be compared between servos
+
+`position_offset` is sign-magnitude encoded, with the sign in bit 11, so the
+raw register value is not a signed number. A small negative offset reads back
+as a large positive count, and two arms calibrated identically can look wildly
+different if you compare raw registers. Compare the joint angles the arms
+report, not the offsets they hold.
 
 ## When you _don't_ need to recalibrate
 
@@ -117,4 +126,6 @@ already; the gripper historically doesn't need it but kits vary.
 - After a `mix bb_so101.calibrate` itself — only run it again if something
   changed mechanically.
 - After updating `bb_so101` to a new version — the offsets are per-servo, not
-  per-package version.
+  per-package version. The one exception is the gripper on an arm calibrated
+  before 0.3.0, which zeroed it at the midpoint of its sweep rather than at the
+  closed stop; see the upgrade notes in the README.
