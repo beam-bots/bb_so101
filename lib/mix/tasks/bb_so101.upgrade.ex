@@ -26,6 +26,13 @@ if Code.ensure_loaded?(Igniter) do
     Only `degree_per_second` and `degree_per_square_second` are rewritten,
     which is what the installer emits. A limit written in other units is
     reported rather than converted.
+
+    The gripper's 45 degree transmission offset is left alone, deliberately.
+    Whether it is still wanted depends on when the arm was last calibrated —
+    correct for a gripper zeroed at the midpoint of its sweep, doubly applied
+    for one anchored to the closed stop, which is what `mix bb_so101.calibrate`
+    has done since 0.3.0. Recalibrate the gripper and remove the offset by
+    hand, together.
     """
 
     use Igniter.Mix.Task
