@@ -11,6 +11,13 @@ See [Conventional Commits](Https://conventionalcommits.org) for commit guideline
 
 <!-- changelog -->
 
+## [v0.4.0](https://github.com/beam-bots/bb_so101/compare/v0.3.0...v0.4.0) (2026-09-23)
+### Breaking Changes:
+
+* drop the gripper's redundant transmission offset (#88) by James Harton
+
+
+
 ## [v0.3.0](https://github.com/beam-bots/bb_so101/compare/v0.2.4...v0.3.0) (2026-08-09)
 ### Breaking Changes:
 
