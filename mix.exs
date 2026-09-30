@@ -92,8 +92,7 @@ defmodule BB.SO101.MixProject do
       {:git_ops, "~> 2.9", only: [:dev, :test], runtime: false},
       # Tracks bb_liveview's version constraint so consumers that depend on
       # both packages don't see a diverged-dependencies error.
-      {:igniter, "~> 0.7 and >= 0.7.3", only: [:dev, :test], runtime: false},
-      {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false}
+      {:igniter, "~> 0.7 and >= 0.7.3", only: [:dev, :test], runtime: false}
     ]
   end
 
